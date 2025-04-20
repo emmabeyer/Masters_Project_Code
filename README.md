@@ -8,4 +8,4 @@ Project Abstract: Since 2017, social media videos recorded near Icacos and Palom
 
 Contains code for analysis of field observations (FieldWork_Analysis), social media compilation data cleaning (Cleaning_SocialMedia_Data), and social media compilation data analysis (SocialMedia_Compilation_Analysis). 
 
-Raw code for the vessel surveys (Boat_Log), land-surveys (Walking_Surveys), and social media compilation (RAW_SM_Data) is included with metadata (SM_Metadata) for the social media data. 
+Raw code for the vessel surveys (Boat_Log), land-surveys (Land_Survey), and social media compilation (Social_Media_Data) is included with metadata (SM_Metadata) for the social media data. 
