@@ -1,0 +1,138 @@
+---
+title: "Social Media Data Cleaning"
+output: pdf_document
+date: "2025-01-04"
+author: "Emma Beyer"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#tinytex::install_tinytex()
+```
+
+# Cleaning Social Media Data for Master's Project
+
+## Set Up
+
+```{r install, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(hms)
+library(dplyr)
+library(janitor)
+
+getwd()
+
+RawData <- read.csv("~/Duke/MP/Data_Analysis/Social_Media_Data.csv",
+                    stringsAsFactors = T)
+
+```
+
+## Update Rows and Column Name
+
+```{r column names}
+# Change the first row to column names
+CleanData <- row_to_names(RawData, row_number = 1)
+
+# Rename the Notes column
+colnames(CleanData)[37] <- "NOTES"
+
+```
+
+# Filter for Usable Data Points
+
+```{r filter}
+
+# Filter rows where Dolphin_Presence is "Y"
+CleanData <- CleanData %>%
+  filter(Dolphin_Presence == "Y")
+
+# Filter rows with good video quality
+CleanData <- CleanData %>%
+  filter(Video_Quality != 1)
+
+```
+
+## Change Data Types
+
+```{r data types}
+# Checking data types
+str(CleanData)
+
+# Changing to Posted_Date and Interaction_Date to date format
+CleanData$Posted_Date <- as.Date(CleanData$Posted_Date, format = "%m/%d/%Y")
+CleanData$Interaction_Date <- as.Date(CleanData$Interaction_Date, 
+                                      format = "%m/%d/%Y")
+
+# Create more accurate date variable
+CleanData <- CleanData %>%
+  mutate(True_Date = coalesce(Interaction_Date, Posted_Date))
+# Change to time data type
+CleanData$True_Date <- as.Date(CleanData$True_Date, format = "%m/%d/%Y")
+
+# Checking date formats
+class(CleanData$Posted_Date)
+class(CleanData$Interaction_Date)
+class(CleanData$True_Date)
+
+# Changing to numeric
+CleanData <- CleanData %>%
+  mutate(
+    across(c(13:23, 25, 29, 30, 33, 34), ~as.numeric(as.character(.)))
+  )
+
+# Check the updated data frame
+str(CleanData)
+
+```
+
+## Convert to Appropriate Time Data Types
+
+```{r time data types}
+# Process and convert Video_Length column to hms time type
+CleanData$Video_Length <- ifelse(
+  grepl("^\\d{1,2}:\\d{2}$", CleanData$Video_Length),  # Validate mm:ss format
+  paste0("00:", sprintf("%02d:%02d", 
+                        as.integer(sub(":.*", "", CleanData$Video_Length)),  
+                        # Extract minutes
+                        as.integer(sub(".*:", "", CleanData$Video_Length)))), 
+                        # Extract seconds
+  NA  # Replace invalid entries with NA
+)
+
+# Convert to hms time type
+CleanData$Video_Length <- hms::as_hms(CleanData$Video_Length)
+
+
+# Process and convert Time_Point column to hms time type
+CleanData$Time_Point <- ifelse(
+  grepl("^\\d{1,2}:\\d{2}$", CleanData$Time_Point),  # Validate mm:ss format
+  paste0("00:", sprintf("%02d:%02d", 
+                        as.integer(sub(":.*", "", CleanData$Time_Point)),  
+                        # Extract minutes
+                        as.integer(sub(".*:", "", CleanData$Time_Point)))), 
+                        # Extract seconds
+  NA  # Replace invalid entries with NA
+)
+
+# Convert to hms time type
+CleanData$Time_Point <- hms::as_hms(CleanData$Time_Point)
+
+```
+
+## Saving Inital Cleaned Dataset
+
+```{r saving file, warning=FALSE}
+# Check working directory
+getwd()
+
+# Change WD
+setwd("~/Duke/MP/Data_Analysis")
+
+# Save as a CSV file
+write.csv(CleanData, file = "CleanedData.csv", row.names = FALSE)
+
+```
+
