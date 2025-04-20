@@ -1,0 +1,55 @@
+Date,Vessel_Name,Date_Recorder,Crew_Names,Time,Waypoint,BSS,DSS,Activity,Notes
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,8:15,75,1,0,Depart_from_Dock,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,8:24,76,3,3,Start_Effort,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,8:50,77,2,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,9:00,78,2,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,9:26,79,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,10:03,80,1,0,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,10:28,81,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,10:33,82,3,3,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,11:05,83,1,0,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,11:10,84,3,3,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,11:51,85,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:04,86,2,2,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:23,87,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:29,88,3,3,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,13:03,89,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,13:08,90,3,3,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,13:31,91,1,1,Change_in_Weather,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,13:38,92,1,0,End_Effort,
+7/11/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,13:51,93,1,0,Return_to_Dock,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,6:27,94,1,0,Depart_from_Dock,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,6:32,95,1,1,Start_Effort,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,6:41,96,2,2,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,6:46,97,3,4,Pause,Due to rough weather.
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,6:59,98,2,2,Resume_Effort,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,7:15,99,3,3,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,7:39,100,1,1,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,7:53,101,2,2,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,8:15,102,1,1,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,8:27,103,1,1,Other,Runaway charter boat seen throwing fish/bait off the boat to feed the fish near the reef.
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,9:11,104,2,2,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,9:31,105,1,1,Other,Note there was an issue with one of the engines and we remained near the Icaocos beach until it was fixed.
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,10:55,106,3,3,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,11:08,107,2,2,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,11:32,108,3,4,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:00,109,1,1,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:05,110,3,4,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:29,112,2,2,Change_in_Weather,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:35,113,2,2,End_Effort,
+7/12/2024,DRNA_Vessel,Emma,Abby_Grisel_Nilda,12:42,114,1,1,Return_to_Dock,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,6:41,115,1,0,Depart_from_Dock,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,6:45,116,1,2,Start_Effort,Speed was 8 knots.
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,7:09,117,1,1,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,7:20,118,1,1,Other,Began scanning from the boat's platform. Better scanning visability. 
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,7:28,119,2,2,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,7:38,120,1,1,Other,Spot where Captain Ronney consistantly see dolphins. Depth was 24 ft. 
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,7:49,121,1,1,Other,Anchored to scan for dolphins. Depth was 10 ft.
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,9:34,122,1,1,Other,Started moving at 8 knots again. 
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,9:50,123,2,3,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,10:09,124,1,2,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,10:35,125,1,2,Other,Manatee sighting. A mother and calf were spotted resting in the reef. 
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,11:10,126,1,1,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,11:28,127,1,2,Change_in_Weather,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,12:12,128,1,0,End_Effort,
+7/15/2024,Reef_Sniper_II,Emma,CaptainRonney_Abby_Grisel,12:12,128,1,0,Return_to_Dock,
