@@ -1,0 +1,1460 @@
+title: "Summary_Stats"
+author: "Emma Beyer"
+date: "2025-01-13"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Full Statistics for Social Media Survey
+
+## Set Up
+
+```{r install data, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggridges)
+library(gridExtra)
+library(wesanderson)
+library(ggpubr)
+library(AER)
+library(MASS)
+
+
+getwd()
+
+SM_data <- read.csv("~/Duke/MP/Data_Analysis/CleanedData.csv",
+                    stringsAsFactors = T)
+
+```
+## Updating Data Types
+
+```{r change data types}
+# Checking data types
+str(SM_data)
+
+# Changing to date format
+SM_data$Posted_Date <- as.Date(SM_data$Posted_Date)
+SM_data$Interaction_Date <- as.Date(SM_data$Interaction_Date)
+SM_data$True_Date <- as.Date(SM_data$True_Date)
+
+# Changing to numeric
+SM_data <- SM_data %>%
+  mutate(
+    across(c(13:23, 25, 29, 30, 33, 34), as.numeric)
+  )
+
+# Convert to hms time type
+SM_data$Video_Length <- hms::as_hms(as.character(SM_data$Video_Length))
+SM_data$Time_Point <- hms::as_hms(as.character(SM_data$Time_Point))
+
+# Checking data types
+str(SM_data)
+
+```
+
+# Basic Information
+
+```{r basic stats}
+# Summary of all variables
+summary(SM_data)
+
+```
+\newpage
+
+## Search Terms
+
+```{r search terms}
+# Plot of Search Terms
+ggplot(SM_data, aes(x = Search_Term)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Time Points by Search Terms Used", 
+       x = "Search Term", y = "Count") +
+  coord_flip()
+
+# Table of Search Terms
+table(SM_data$Search_Term)
+
+# Count of videos per search term
+encounter_counts <- SM_data %>%
+  distinct(Encounter_No, Search_Term) %>%  
+  group_by(Search_Term) %>%
+  summarise(Video_Count = n())
+
+```
+
+## BSS and DSS
+
+```{r conditions}
+# Reshape data to long format
+SM_data_long <- SM_data %>%
+  pivot_longer(cols = c(BSS, DSS), names_to = "Metric", values_to = "Ranking")
+
+# Create combined plot
+ggplot(SM_data_long, aes(x = Ranking)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  # Create separate panels for BSS and DSS
+  facet_wrap(~ Metric, scales = "free_x") + 
+  labs(title = "Count of Interaction Time Points by BSS and DSS", 
+       x = "Ranking", y = "Count") 
+
+```
+
+## Vessel Names
+
+```{r vessel names}
+# Separate the combined vessel names
+SM_data_separated <- SM_data %>%
+  separate_rows(Vessel_Names, sep = ",")
+
+# Plot separated Vessel names
+ggplot(SM_data_separated, aes(x = Vessel_Names)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Vessels Seen in Videos", 
+       x = "Vessel Name", y = "Count") +
+  coord_flip()
+
+# Count of videos per vessel name
+vesselname_counts <- SM_data_separated %>%
+  distinct(Encounter_No, Vessel_Names) %>%  
+  group_by(Vessel_Names) %>%
+  summarise(Encounter_Count = n())
+
+
+```
+
+## Hashtags
+
+```{r hashtags}
+# Subset data so that it represents each video and not all time points
+video_subset <- SM_data %>%
+  group_by(Encounter_No) %>%
+  slice(1) %>%  # Selects the first row of each group
+  ungroup()
+
+# Separate Hashtags
+SM_data_HTseparated <- video_subset %>%
+  separate_rows(Hashtags, sep = "#")
+
+# Remove empty rows
+SM_data_HTseparated <- SM_data_HTseparated %>%
+  filter(Hashtags != "")
+
+# Count occurrences of each value and filter the top 20
+top_20_values <- SM_data_HTseparated %>%
+  count(Hashtags) %>%            # Count occurrences of each value
+  arrange(desc(n)) %>%           # Sort in descending order
+  slice_head(n = 20)             # Keep the top 20 values
+
+# Show values of top 20 hashtags
+print(top_20_values)
+
+# Filter the original data to only include rows with the top 10 values
+top_20_hashtags <- SM_data_HTseparated %>%
+  filter(Hashtags %in% top_20_values$Hashtags)
+
+# Plot of Top 20 hastags
+ggplot(top_20_hashtags, aes(x = Hashtags)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Top 20 Hashtags Used in Videos", 
+       x = "Hashtags", y = "Count") +
+  coord_flip()
+
+```
+
+## Video Information
+
+```{r video platforms}
+# Plot of Video Platforms
+ggplot(SM_data, aes(x = Platform)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Time Points by Social Media Platform", 
+       x = "Social Media Platform", y = "Count")
+
+# Count of videos per Platform
+platform_counts <- SM_data %>%
+  distinct(Encounter_No, Platform) %>%  
+  group_by(Platform) %>%
+  summarise(Encounter_Count = n())
+
+```
+
+### Video Locations
+
+```{r video locations}
+# Plot of Video Locations
+ggplot(SM_data, aes(x = Video_Location)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Time Points by Video Filming Location", 
+       x = "Video Location", y = "Count") 
+
+# Count of videos per video location
+vlocation_counts <- SM_data %>%
+  distinct(Encounter_No, Video_Location) %>%  
+  group_by(Video_Location) %>%
+  summarise(Encounter_Count = n())
+
+```
+
+### Video Lengths
+
+```{r video stats}
+# Video Lengths
+ggplot(SM_data, aes(x = Video_Length)) + 
+  geom_histogram(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Time Points by Video Length", 
+       x = "Video Length", y = "Count") 
+
+# Video Lengths without outlier
+SM_data_VideoOutlier <- SM_data %>%
+  filter(Video_Length != hms("00:10:20"))
+
+# Plot of Video Lengths w/out outlier
+ggplot(SM_data_VideoOutlier, aes(x = Video_Length)) + 
+  geom_histogram(fill = "lightblue", color = "black") +
+  labs(title = 
+         "Count of Interaction Time Points by Video Length without Outlier", 
+       x = "Video Length", y = "Count") 
+
+# Count of videos per video length
+vlength_counts <- SM_data %>%
+  distinct(Encounter_No, Video_Length) %>%  
+  group_by(Video_Length) %>%
+  summarise(Encounter_Count = n())
+
+# Stats for video lengths
+mean(vlength_counts$Video_Length)
+sd(vlength_counts$Video_Length) / sqrt(length(vlength_counts$Video_Length))
+min(vlength_counts$Video_Length)
+max(vlength_counts$Video_Length)
+
+# Counts without outlier
+vlengthoutlier_counts <- SM_data_VideoOutlier %>%
+  distinct(Encounter_No, Video_Length) %>%  
+  group_by(Video_Length) %>%
+  summarise(Encounter_Count = n())
+
+# Stats w/out outlier
+mean(vlengthoutlier_counts$Video_Length)
+sd(vlengthoutlier_counts$Video_Length) / sqrt(length(vlengthoutlier_counts$Video_Length))
+min(vlengthoutlier_counts$Video_Length)
+max(vlengthoutlier_counts$Video_Length)
+
+# Plot of video counts per video length w/out outlier
+VideoCountOutlier_plot <- ggplot(vlengthoutlier_counts, 
+                                 aes(x = Video_Length, y = Encounter_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +  
+  labs(title = "Videos without Outlier",
+       x = "Video Length",
+       y = "Video Count") +
+  theme_minimal()
+
+# Plot of video counts per video length
+VideoCount_plot <- ggplot(vlength_counts, 
+                          aes(x = Video_Length, y = Encounter_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +  
+  labs(title = "All Videos",
+       x = "Video Length",
+       y = "Video Count") +
+  theme_minimal()
+
+# Combined plot
+VideoLength_combined <- grid.arrange(VideoCount_plot, VideoCountOutlier_plot, 
+                                ncol = 1, 
+                                top = "Distribution of Video Lengths")
+print(VideoLength_combined)
+
+
+```
+\newpage
+
+## Dolphin Group Information
+
+### Sub Groups
+
+```{r subgroups}
+# Plot of Dolphin subgroups
+ggplot(SM_data, aes(x = Subgroups)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Subgroups", 
+       x = "Number of Subgroups", y = "Count")
+
+```
+
+### Group Cohesion
+
+```{r cohesion}
+# Plot of Group Cohesion
+ggplot(SM_data, aes(x = Group_Cohesion)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Dolphin Group Cohesion", 
+       x = "Group Cohesion", y = "Count")
+```
+
+
+### Group Counts
+
+```{r group counts}
+# Table of counts
+dolphingroup_counts <- SM_data %>%
+  distinct(Encounter_No, Subgroups) %>%  
+  group_by(Subgroups) %>%
+  summarise(Subgroups = n())
+
+# Plot of Total Best (best estimates of group size)
+dolphingroups <- ggplot(SM_data, aes(x = Total_Best)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(SM_data$Total_Best, na.rm = TRUE), 
+                            sd = sd(SM_data$Total_Best, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Dolphins per Group", 
+       y = "Density",
+       title = "Distribution of Best Group Size Estimates") +
+  theme_minimal() 
+print(dolphingroups)
+
+# Stats for total best
+mean(SM_data$Total_Best)
+sd(SM_data$Total_Best) / sqrt(length(SM_data$Total_Best))
+min(SM_data$Total_Best)
+max(SM_data$Total_Best)
+
+
+# Plot of Best Calves per Group
+ggplot(SM_data, aes(x = Calves_Best)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Best Number of Calves per Group", 
+       x = "Number of Calves per Group", 
+       y = "Count") 
+
+# Count of videos with number of calves 
+calves_counts <- SM_data %>%
+  distinct(Encounter_No, Calves_Best) %>%  
+  group_by(Calves_Best) %>%
+  summarise(Video_Count = n())
+print(calves_counts)
+
+
+# Plot of Best Young of Year per Group
+ggplot(SM_data, aes(x = YoY_Best)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Best Number of YoY per Group", 
+       x = "Number of YoY per Group", 
+       y = "Count")
+
+# Count of videos with number of YoY
+yoy_counts <- SM_data %>%
+  distinct(Encounter_No, YoY_Best) %>%  
+  group_by(YoY_Best) %>%
+  summarise(Video_Count = n())
+print(yoy_counts)
+
+```
+\newpage 
+
+## Time Information
+
+### Interaction Point Samples
+
+```{r point samples}
+# Plot of interaction dates
+dates_plot <- ggplot(SM_data, aes(x = True_Date)) + 
+  geom_histogram(bins = 50, fill = "lightblue", color = "black") +
+  labs(title = "All Interaction Time Points", 
+       x = "Date", y = "Count") +
+  theme_minimal()
+
+# Count number of data points per date
+date_counts <- SM_data %>%
+  group_by(True_Date) %>%
+  summarise(Count = n())
+
+# Convert True_Date to a numeric variable (days since first date)
+date_counts$Days <- as.numeric(date_counts$True_Date - min(date_counts$True_Date))
+
+# Fit Poisson regression model
+poisson_model_ptsample <- glm(Count ~ Days, data = date_counts, family = poisson)
+
+# View summary of model
+summary(poisson_model_ptsample)
+
+# Plot regression
+time_regression <- ggplot(date_counts, aes(x = True_Date, y = Count)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"), 
+              color = "blue") +
+  labs(title = "All Interactions Points",
+       x = "Date",
+       y = "Count of Interaction Time Points") +
+  theme_minimal()
+print(time_regression)
+
+```
+
+### Interaction Point Samples after TikTok release (to better account for general increase in social media use)
+
+```{r after TikTok}
+# Dates within the lifetime of TikTok
+SM_data_filtered <- SM_data %>%
+  filter(True_Date >= as.Date("2017-09-01"))
+
+# Summary stats during TikTok
+summary(SM_data_filtered)
+
+# Plot of interactions after TikTok launch
+socialmedia_plot <- ggplot(SM_data_filtered, aes(x = True_Date)) + 
+  geom_histogram(bins = 50, fill = "lightblue", color = "black") +
+  labs(title = "Interaction Time Points after TikTok Release", 
+       x = "Date", y = "Count") +
+  theme_minimal()
+
+# Count number of data points per date
+date_counts_TT <- SM_data_filtered %>%
+  group_by(True_Date) %>%
+  summarise(Count = n())
+
+# Convert True_Date to a numeric variable (days since first date)
+date_counts_TT$Days <- as.numeric(date_counts_TT$True_Date - min(date_counts_TT$True_Date))
+
+# Fit Poisson regression model
+poisson_model_TT <- glm(Count ~ Days, data = date_counts_TT, family = poisson)
+
+# View summary of model
+summary(poisson_model_TT)
+
+# Plot regression
+time_regression_TT <- ggplot(date_counts_TT, aes(x = True_Date, y = Count)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"), 
+              color = "blue") +
+  labs(title = "Interaction Points after TikTok",
+       x = "Date",
+       y = "Count of Interaction Time Points") +
+  theme_minimal()
+print(time_regression_TT)
+
+```
+
+```{r point sample combined plots}
+# Combined Counts plot
+Date_combined <- grid.arrange(dates_plot, socialmedia_plot, 
+                                ncol = 1, 
+                top = "Distribution of Interaction Time Points by Video Dates")
+print(Date_combined)
+
+# Combined  regression plot
+Time_combined <- grid.arrange(time_regression, time_regression_TT, 
+                                ncol = 2)
+
+
+# Add title separately
+annotate_figure(Time_combined, 
+                top = text_grob("Comparison of Interactions over Time",
+                                face = "bold", size = 14))
+print(Time_combined)
+
+# Save plot to png
+ggsave("~/Duke/MP/Data_Analysis/Time_plot.png", plot = Time_combined, 
+       width = 8, height = 6, dpi = 300)
+
+```
+
+### Video Counts per Year
+
+```{r yearly video count}
+# Create dataframe of counts of videos per year
+video_counts_yearly <- SM_data %>%
+  mutate(Year = year(True_Date)) %>%  
+  group_by(Year) %>%
+  summarise(Count = n_distinct(Encounter_No))
+
+# Plot of video counts per year
+counts_year <- ggplot(video_counts_yearly, aes(x = Year, y = Count)) +
+  geom_col(fill = "lightblue") +  
+  theme_minimal() +
+  labs(title = "Yearly Counts of Videos",
+       x = "Year",
+       y = "Count of Videos") +
+  scale_x_continuous(breaks = seq(min(video_counts_yearly$Year), 
+                                  max(video_counts_yearly$Year), 2)) 
+print(counts_year)
+
+```
+
+```{r model fit}
+# Run dispersion test
+dispersiontest(glm(Count ~ Year, family = poisson, data = video_counts_yearly))
+# data is over dispersed (p-value greater than 0.05), need to use negative binomial model
+
+# Fit Negative Binomial model
+nb_model <- glm.nb(Count ~ Year, data = video_counts_yearly)
+
+# Fit a Poisson regression model
+poisson_model_yearly <- glm(Count ~ Year, family = poisson, data = video_counts_yearly)
+
+# Compare AIC values
+AIC(poisson_model_yearly, nb_model)
+# The AIC for the poisson is lower, so it fits the data better
+
+```
+
+```{r yearly video count poisson, include=FALSE}
+# Summary of poisson regression
+summary(poisson_model_yearly)
+
+# Plot of model
+count_year_model <- ggplot(poisson_model_yearly, aes(x = Year, y = Count)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"), 
+              color = "blue") +
+  labs(title = "Poisson Regression",
+       x = "Year",
+       y = "Count of Videos") +
+    scale_x_continuous(breaks = seq(min(video_counts_yearly$Year), 
+                                  max(video_counts_yearly$Year), 2)) +
+  theme_minimal()
+
+print(count_year_model)
+
+```
+
+```{r combined plot, include=FALSE}
+# Combined plot
+year_combined <- grid.arrange(counts_year, count_year_model, 
+                                ncol = 1)
+
+# Add title separately
+annotate_figure(year_combined, 
+                top = text_grob("Count of Interaction Videos per Year",
+                                face = "bold", size = 14))
+
+```
+
+### Video Counts per Year (Human Interaction vs No Human Interaction)
+
+```{r HI per year}
+# Identify videos that contain HI at least once
+videos_with_HI <- SM_data %>%
+  filter(PDGBehav == "HI") %>%
+  distinct(Encounter_No)  # Get unique videos with HI
+
+# Subset to videos that never had HI
+NoHI_subset <- SM_data %>%
+  filter(!Encounter_No %in% videos_with_HI$Encounter_No)  
+
+# Count number of unique videos per year for HI
+video_counts_yearly_HI <- SM_data %>%
+  filter(Encounter_No %in% videos_with_HI$Encounter_No) %>%
+  mutate(Year = year(True_Date)) %>%
+  group_by(Year) %>%
+  summarise(Count = n_distinct(Encounter_No)) %>%
+  mutate(Category = "HI")  
+
+# Count number of unique videos per year for NoHI
+video_counts_yearly_NoHI <- NoHI_subset %>%
+  mutate(Year = year(True_Date)) %>%
+  group_by(Year) %>%
+  summarise(Count = n_distinct(Encounter_No)) %>%
+  mutate(Category = "NoHI") 
+
+# Combine both datasets
+video_counts_yearly <- bind_rows(video_counts_yearly_HI, video_counts_yearly_NoHI)
+
+# Assign stacking order
+video_counts_yearly$Category <- factor(video_counts_yearly$Category, levels = c("NoHI", "HI"))
+
+# Plot stacked bar chart
+ video_count_plot <- ggplot(video_counts_yearly, 
+                            aes(x = Year, y = Count, fill = Category)) +
+  geom_bar(stat = "identity") +  
+  labs(title = 
+         "Yearly Counts of Videos (Human Interaction vs No Human Interaction)",
+       x = "Year",
+       y = "Video Count") +
+  scale_fill_manual(
+    name = "Video Type",
+    values = c("HI" = "steelblue", "NoHI" = "lightblue"),  
+    labels = c("HI" = "Human Interaction", "NoHI" = "No Human Interaction")) +
+  scale_x_continuous(breaks = seq(min(video_counts_yearly$Year), 
+                                  max(video_counts_yearly$Year), 2)) +
+   theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA))
+ 
+ print(video_count_plot)
+
+# Save plot
+ggsave("~/Duke/MP/Data_Analysis/video_count_plot.png", video_count_plot, 
+       width = 8, height = 5.5, dpi = 300)
+
+```
+
+### Percentage of Human Interaction Videos per Year
+
+```{r yearly percentage}
+# Calculate percentage per year
+video_percent_yearly <- video_counts_yearly %>%
+  group_by(Year) %>%
+  mutate(Percent = Count / sum(Count) * 100)
+
+# Plot as percentage
+video_percent_plot <- ggplot(video_percent_yearly, 
+                             aes(x = Year, y = Percent, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Yearly Percentage of Videos (Human Interaction vs No Human Interaction)",
+       x = "Year",
+       y = "Percentage of Videos") +
+  scale_fill_manual(
+    name = "Video Type",
+    values = c("HI" = "steelblue", "NoHI" = "lightblue"),
+    labels = c("HI" = "Human Interaction", "NoHI" = "No Human Interaction")) +
+  scale_x_continuous(breaks = seq(min(video_counts_yearly$Year), max(video_counts_yearly$Year), 2)) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA))
+
+print(video_percent_plot)
+
+# Save plot
+ggsave("~/Duke/MP/Data_Analysis/video_percent_plot.png", video_percent_plot, width = 8, height = 5.5, dpi = 300)
+
+
+```
+
+### Video Counts per Year after TikTok release (to limit bias from general increase in social media use over time)
+
+```{r video counts during TikTok}
+# Create dataframe of counts of videos per year
+video_counts_yearly_TT <- SM_data_filtered %>%
+  mutate(Year = year(True_Date)) %>%  
+  group_by(Year) %>%
+  summarise(Count = n_distinct(Encounter_No))
+
+# Plot of video counts per year
+counts_year_TT <- ggplot(video_counts_yearly_TT, aes(x = Year, y = Count)) +
+  geom_col(fill = "lightblue") +  
+  theme_minimal() +
+  labs(title = "Videos Posted Per Year",
+       x = "Year",
+       y = "Count of Videos") +
+  scale_x_continuous(breaks = seq(min(video_counts_yearly_TT$Year), 
+                                  max(video_counts_yearly_TT$Year), 1)) 
+
+print(counts_year_TT)
+
+```
+
+```{r test new TikTok models}
+# Run dispersion test
+dispersiontest(glm(Count ~ Year, family = poisson, data = video_counts_yearly_TT))
+# data is over dispersed (p-value greater than 0.05), need to use negative binomial model
+
+# Fit Negative Binomial model
+nb_model_TT <- glm.nb(Count ~ Year, data = video_counts_yearly_TT)
+
+# Fit a Poisson regression model
+poisson_model_TT <- glm(Count ~ Year, family = poisson, data = video_counts_yearly_TT)
+
+# Compare AIC values
+AIC(poisson_model_TT, nb_model_TT)
+# The AIC for the poisson is lower, so it fits the data better
+
+```
+
+```{r poisson of yearly videos after TikTok, include=FALSE}
+# Results from model
+summary(poisson_model_TT)
+
+# Plot of model
+count_year_model_TT <- ggplot(poisson_model_TT, aes(x = Year, y = Count)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"), 
+              color = "blue") +
+  labs(title = "Poisson Regression",
+       x = "Year",
+       y = "Count of Videos") +
+  scale_x_continuous(breaks = seq(min(video_counts_yearly_TT$Year), 
+                                  max(video_counts_yearly_TT$Year), 1)) +
+  theme_minimal()
+
+print(count_year_model_TT)
+
+```
+
+```{r combined plot TT, include=FALSE}
+# Combined plot
+year_combined_TT <- grid.arrange(counts_year_TT, count_year_model_TT, 
+                                ncol = 1)
+
+# Add title separately
+annotate_figure(year_combined_TT, 
+                top = text_grob("Count of Interaction Videos per Year (2017-2024)",
+                                face = "bold", size = 14))
+
+```
+
+### Video Seasonality
+
+```{r seasonality}
+# Identify videos that contain HI 
+videos_with_HI <- SM_data %>%
+  filter(PDGBehav == "HI") %>%
+  distinct(Encounter_No)  # Get unique videos with HI
+
+# Subset to videos that never had HI
+NoHI_subset <- SM_data %>%
+  filter(!Encounter_No %in% videos_with_HI$Encounter_No)  
+
+# Count number of unique videos per year for HI
+video_counts_monthly_HI <- SM_data %>%
+  filter(Encounter_No %in% videos_with_HI$Encounter_No) %>%
+  mutate(Month = month(True_Date)) %>%
+  group_by(Month) %>%
+  summarise(Count = n_distinct(Encounter_No)) %>%
+  mutate(Category = "HI")  
+
+# Count number of unique videos per year for NoHI
+video_counts_monthly_NoHI <- NoHI_subset %>%
+  mutate(Month = month(True_Date)) %>%
+  group_by(Month) %>%
+  summarise(Count = n_distinct(Encounter_No)) %>%
+  mutate(Category = "NoHI") 
+
+# Combine both datasets
+video_counts_monthly <- bind_rows(video_counts_monthly_HI, video_counts_monthly_NoHI)
+
+# Assign stacking order
+video_counts_monthly$Category <- factor(video_counts_monthly$Category, levels = c("NoHI", "HI"))
+
+# Plot stacked bar chart
+month_plot <- ggplot(video_counts_monthly, 
+       aes(x = factor(Month, levels = 1:12, labels = month.abb), 
+           y = Count, fill = Category)) +
+  geom_bar(stat = "identity") +  
+  labs(title = "Monthly Counts of Videos (Human Interaction vs No Human Interaction)",
+       x = "Month",
+       y = "Video Count") +
+  scale_fill_manual(
+    name = "Video Type",
+    values = c("HI" = "steelblue", "NoHI" = "lightblue"),  
+    labels = c("HI" = "Human Interaction", "NoHI" = "No Human Interaction")) +
+  theme_minimal()+
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA))
+
+print(month_plot)
+
+# Save plot
+ggsave("~/Duke/MP/Data_Analysis/video_month_plot.png", month_plot, width = 8, height = 5.5, dpi = 300)
+
+
+```
+
+### Seasonal Percentage
+
+```{r monthly percentage}
+# Calculate percentage per month
+video_percent_monthly <- video_counts_monthly %>%
+  group_by(Month) %>%
+  mutate(Percent = Count / sum(Count) * 100)
+
+# Plot as percentage
+month_percent <- ggplot(video_percent_monthly, 
+       aes(x = factor(Month, levels = 1:12, labels = month.abb), 
+           y = Percent, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Monthly Percentage of Videos (Human Interaction vs No Human Interaction)",
+       x = "Month",
+       y = "Percentage of Videos") +
+  scale_fill_manual(
+    name = "Video Type",
+    values = c("HI" = "steelblue", "NoHI" = "lightblue"),
+    labels = c("HI" = "Human Interaction", "NoHI" = "No Human Interaction")) +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA)) 
+
+print(month_percent)
+
+# Save plot
+ggsave("~/Duke/MP/Data_Analysis/video_monthpercent_plot.png", 
+       month_percent, width = 8, height = 5.5, dpi = 300)
+
+
+```
+
+## Location Information
+
+### Interaction Point Sample Location Counts
+
+```{r location counts}
+# Count point samples at each location
+location_counts_ptsamples <- SM_data %>%
+  group_by(General_Location) %>%
+  summarise(Count = n())
+
+# Plot of interaction locations
+ggplot(location_counts_ptsamples, aes(x = reorder(General_Location, -Count), 
+                                      y = Count)) +
+  geom_bar(fill = "skyblue", stat = "identity") +
+  labs(title = "Interaction Time Point Counts by General Location",
+       x = "General Location",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
+
+# Plot of interaction locations over time
+ggplot(SM_data, aes(x = True_Date, y = General_Location)) + 
+  geom_point() +
+  labs(title = "Count of Interaction Point Samples over Time",
+       x = "Interaction Date", y = "Location Counts")
+
+```
+
+### Interaction Point Sample Heatmap
+
+```{r location heatmap}
+location_heatmap <- ggplot(SM_data, aes(x = True_Date, y = General_Location)) +
+  geom_tile(aes(fill = ..count..), stat = "bin2d") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(x = "Interaction Date", y = "General Location", fill = "Count") +
+  scale_y_discrete(labels = c("Villa_Marina" = "Villa Marina", 
+                          "Palominos_Public" = "Palominos Public Beach", 
+                         "Palominos" = "Near Palominos (Exact Location Unknown)", 
+                         "Offshore" = "Within Fajardo (Exact Location Unknown)",
+                         "Isleta_Marina" = "Isleta Marina", 
+                         "Icacos_WestBeach" = "Icacos West Beach",
+                         "Icacos_SouthBeach" = "Icacos South Beach", 
+                         "Icacos" = "Near Icacos (Exact Location Unknown)")) +
+  theme_minimal()
+
+location_heatmap <- annotate_figure(location_heatmap, 
+                top = text_grob("Frequency of Interaction Locations over Time",
+                                face = "bold", size = 14))
+print(location_heatmap)
+
+```
+
+### Interaction Videos Counts by Location 
+
+```{r videos by location}
+# Count of videos per general location
+location_counts_videos <- SM_data %>%
+  distinct(Encounter_No, General_Location) %>%  
+  group_by(General_Location) %>%
+  summarise(Video_Count = n())
+
+# Plot of videos per general location
+ggplot(location_counts_videos, aes(x = reorder(General_Location, -Video_Count), 
+                                      y = Video_Count)) +
+  geom_bar(fill = "skyblue", stat = "identity") +
+  labs(title = "Interaction Videos by General Location",
+       x = "General Location",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
+
+
+```
+
+# Behavior Analysis
+
+## Dolphin Behavior Information
+
+### Predominate Group Behaviors 
+
+```{r predominate group behaviors}
+# Plot of Predominate Group Behavior
+ggplot(SM_data, aes(x = PDGBehav)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Predominant Group Behaviors", 
+       x = "Predominant Group Behavior", y = "Count")
+
+# Percentage of PDGBehav
+# Create a frequency table
+PDGB_counts <- table(SM_data$PDGBehav)
+
+# Convert to percentages
+PDGB_percentages <- prop.table(PDGB_counts) * 100
+print(PDGB_percentages)
+
+# Counts of PDG by location
+PDGB_counts_locations <- table(SM_data$PDGBehav, SM_data$General_Location)
+print(PDGB_counts_locations)
+#Percentages of PDG by location
+PDGB_counts_locations_percentages <- prop.table(PDGB_counts_locations) * 100
+print(PDGB_counts_locations_percentages)
+
+# Create bigger color palette
+interpolated_colors <- wes_palette("Darjeeling1", n = 6, type = "continuous")
+
+# Plot of PDG Behaviors by Location
+PDG_location <- ggplot(SM_data, aes(x = General_Location, 
+                                      fill = PDGBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Location", y = "Count", fill = "Predominant Group Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", 
+                              "Palominos_Public" = "Palominos Public Beach",
+                              "Palominos" = "Near Palominos", 
+                              "Offshore" = "Within Fajardo", 
+                              "Isleta_Marina" = "Isleta Marina", 
+                              "Icacos_WestBeach" = "Icacos West Beach",
+                              "Icacos_SouthBeach" = "Icacos South Beach", 
+                              "Icacos" = "Near Icacos")) +  
+  scale_fill_manual(values = interpolated_colors,
+                    labels = c("HI" = "Human Interaction", 
+                               "ML" = "Milling",
+                               "RML" = "Rubbing on Mooring Line",
+                               "SOC" = "Social",
+                               "TRV" = "Traveling")) 
+
+PDG_location <- annotate_figure(PDG_location, 
+        top = text_grob("Comparison of Location and Predominant Group Behavior",
+                                face = "bold", size = 14))
+
+print(PDG_location)
+
+```
+
+### Human Interaction Behaviors
+
+```{r HI behaviors}
+# Filter data for Human Interaction Behaviors
+SM_data_HI <- SM_data %>%
+  filter(PDGBehav == "HI")
+
+# Plot of Human Interaction Behaviors
+ggplot(SM_data_HI, aes(x = HIBehav)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Human Interaction Behaviors", 
+       x = "Human Interaction Behaviors", y = "Count")
+
+# Percentage of HI Behavior
+# Create a frequency table
+HI_counts <- table(SM_data_HI$HIBehav)
+
+# Convert to percentages
+HI_percentages <- prop.table(HI_counts) * 100
+print(HI_percentages)
+
+# Counts of HI by location
+HI_counts_locations <- table(SM_data_HI$HIBehav, SM_data_HI$General_Location)
+print(HI_counts_locations)
+
+# Percentages of HI by location
+HI_counts_locations_percentages <- prop.table(HI_counts_locations) * 100
+print(HI_counts_locations_percentages)
+
+# Plot of HI Behaviors over time
+ggplot(SM_data_HI, aes(x = True_Date, y = HIBehav)) + 
+  geom_point() +
+  labs(title = "Count of Human Interaction Behaviors over Time",
+       x = "Interaction Date", y = "Human Interaction Behavior")
+
+# Plot of HI Behaviors by Location
+HI_location <- ggplot(SM_data_HI, aes(x = General_Location, 
+                                      fill = HIBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Location", y = "Count", fill = "Human Interaction Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", 
+                              "Palominos_Public" = "Palominos Public Beach",
+                              "Palominos" = "Near Palominos", 
+                              "Offshore" = "Within Fajardo", 
+                              "Isleta_Marina" = "Isleta Marina", 
+                              "Icacos_WestBeach" = "Icacos West Beach",
+                              "Icacos_SouthBeach" = "Icacos South Beach", 
+                              "Icacos" = "Near Icacos")) +   
+  scale_fill_manual(values = interpolated_colors,
+                  labels = c("AGR" = "Aggressive", 
+                               "BEG" = "Begging",
+                               "FV" = "Follow Vessel",
+                               "HU" = "Head Up",
+                               "RC" = "Remain Close",
+                              "RT" = "Repeat Travel")) 
+
+# Plot title
+annotate_figure(HI_location, 
+        top = text_grob("Comparison of Location and Human Interaction Behavior",
+                                face = "bold", size = 14))
+
+print(HI_location)
+
+# Heat map of HI Behav over time
+HI_heatmap <- ggplot(SM_data_HI, aes(x = True_Date, y = HIBehav)) +
+  geom_tile(aes(fill = ..count..), stat = "bin2d") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(x = "Interaction Date", y = "Human Interaction Behaviors", fill = "Count") +
+  theme_minimal()
+
+# Plot title
+annotate_figure(HI_heatmap, 
+                top = text_grob("Frequency of Human Interactions over Time",
+                                face = "bold", size = 14))
+
+```
+
+### IRC Codes
+
+```{r irc}
+# Plot of IRC
+ggplot(SM_data, aes(x = IRC)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of IRCs from Videos", 
+       x = "IRC", y = "Count")
+
+# Separate the combined IRC codes
+SM_data_indiv_IRC <- SM_data %>%
+  separate_rows(IRC, sep = ",")
+
+# Plot separated IRC codes
+ggplot(SM_data_indiv_IRC, aes(x = IRC)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of IRCs from Videos", 
+       x = "IRC", y = "Count") 
+
+```
+
+## Vessel Behavior Information
+
+### Vessels near Dolphins
+
+```{r vessel counts}
+# Remove NAs
+SM_data_vesselNAs <- SM_data[!is.na(SM_data$PDVBehav), ]
+
+# Vessels w/in 10m of dolphins
+vessel_10 <- ggplot(SM_data_vesselNAs, 
+                    aes(x = General_Location, y = Vessels_10m)) + 
+  geom_boxplot(fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", 
+                                "Palominos_Public" = "Palominos Public Beach",
+                                "Palominos" = "Near Palominos", 
+                                "Offshore" = "Within Fajardo", 
+                                "Isleta_Marina" = "Isleta Marina", 
+                                "Icacos_WestBeach" = "Icacos West Beach",
+                                "Icacos_SouthBeach" = "Icacos South Beach", 
+                                "Icacos" = "Near Icacos")) +
+  labs(x = "Interaction Location", y = "Vessels (10m)")
+
+# Vessel w/in 50m of dolphins
+vessel_50 <- ggplot(SM_data_vesselNAs, 
+                    aes(x = General_Location, y = Vessels_50m)) + 
+  geom_boxplot(fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", 
+                                "Palominos_Public" = "Palominos Public Beach",
+                                "Palominos" = "Near Palominos", 
+                                "Offshore" = "Within Fajardo", 
+                                "Isleta_Marina" = "Isleta Marina", 
+                                "Icacos_WestBeach" = "Icacos West Beach",
+                                "Icacos_SouthBeach" = "Icacos South Beach", 
+                                "Icacos" = "Near Icacos")) +
+  labs(x = "Interaction Location", y = "Vessels (50m)")
+
+# Combined plot
+vesselcounts_combined <- grid.arrange(vessel_10, vessel_50, 
+                                ncol = 2, 
+                                top = "Number of Vessels within 10m and 50m of Bottlenose Dolphins")
+print(vesselcounts_combined)
+
+```
+
+### Vessel Behaviors
+
+```{r vessel behavior}
+# Plot of Vessel Behaviors
+ggplot(SM_data_vesselNAs, aes(x = PDVBehav)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Vessel Behaviors", 
+       x = "Vessel Behaviors", y = "Count")
+
+# Percentage of PDGBehav
+# Create a frequency table
+vessel_counts <- table(SM_data_vesselNAs$PDVBehav)
+
+# Convert to percentages
+vessel_percentages <- prop.table(vessel_counts) * 100
+print(vessel_percentages)
+
+# Plot of Vessel Behaviors over time
+ggplot(SM_data_vesselNAs, aes(x = True_Date, y = PDVBehav)) + 
+  geom_point() +
+  labs(title = "Count of Interaction Vessel Behaviors over Time",
+       x = "Interaction Date", y = "Vessel Behavior")
+
+# Heat map of vessel Behav over time
+vessel_heatmap <- ggplot(SM_data_vesselNAs, aes(x = True_Date, y = PDVBehav)) +
+  geom_tile(aes(fill = ..count..), stat = "bin2d") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(x = "Interaction Date", y = "Predominant Vessel Behaviors", fill = "Count") +
+  theme_minimal()
+
+vessel_heatmap <-annotate_figure(vessel_heatmap, 
+          top = text_grob("Frequency of Predominant Vessel Behavior over Time",
+                                face = "bold", size = 14))
+print(vessel_heatmap)
+
+# Plot of Vessel Behaviors by Location
+Vessel_location <- ggplot(SM_data_vesselNAs, aes(x = General_Location, 
+                                      fill = PDVBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Location", y = "Count", fill = "Predominant Vessel Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = interpolated_colors) 
+
+annotate_figure(Vessel_location, 
+     top = text_grob("Comparison of Location and Predominant Vessel Behavior",
+                                face = "bold", size = 14))
+
+```
+
+### Vessel Statistics
+
+```{r vessel stats}
+# Summary stats of vessel_10 by location
+vessel_summary_10 <- SM_data_vesselNAs %>%
+  group_by(General_Location) %>%
+  summarise(
+    Total_Records = n(),  # Count of interactions per location
+    Mean_Vessels = mean(Vessels_10m, na.rm = TRUE),
+    Median_Vessels = median(Vessels_10m, na.rm = TRUE),
+    Min_Vessels = min(Vessels_10m, na.rm = TRUE),
+    Max_Vessels = max(Vessels_10m, na.rm = TRUE)
+  )
+
+print(vessel_summary_10)
+
+# Summary stats of vessel_50 by location
+vessel_summary_50 <- SM_data_vesselNAs %>%
+  group_by(General_Location) %>%
+  summarise(
+    Total_Records = n(),  # Count of interactions per location
+    Mean_Vessels = mean(Vessels_50m, na.rm = TRUE),
+    Median_Vessels = median(Vessels_50m, na.rm = TRUE),
+    Min_Vessels = min(Vessels_50m, na.rm = TRUE),
+    Max_Vessels = max(Vessels_50m, na.rm = TRUE)
+  )
+
+print(vessel_summary_50)
+
+```
+
+## Swimmer Behavior Information
+
+### Swimmers near Dolphins
+
+```{r swimmer near}
+# Remove NAs
+SM_data_swimNAs <- SM_data[!is.na(SM_data$PDSBehav), ]
+
+# Swimmer w/in 10m of dolphins
+swim_10 <- ggplot(SM_data_swimNAs, aes(x = General_Location, y = Swimmers_10)) + 
+  geom_boxplot(fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", "Palominos_Public" = "Palominos Public Beach", "Palominos" = "Near Palominos", "Offshore" = "Within Fajardo", "Isleta_Marina" = "Isleta Marina", "Icacos_WestBeach" = "Icacos West Beach", "Icacos_SouthBeach" = "Icacos South Beach", "Icacos" = "Near Icacos")) +
+  labs(x = "Interaction Location", y = "Swimmers (10m)")
+
+# Swimmer w/in 50m of dolphins
+swim_50 <- ggplot(SM_data_swimNAs, aes(x = General_Location, y = Swimmers_50)) + 
+  geom_boxplot(fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("Villa_Marina" = "Villa Marina", "Palominos_Public" = "Palominos Public Beach", "Palominos" = "Near Palominos", "Offshore" = "Within Fajardo", "Isleta_Marina" = "Isleta Marina", "Icacos_WestBeach" = "Icacos West Beach", "Icacos_SouthBeach" = "Icacos South Beach", "Icacos" = "Near Icacos")) +
+  labs(x = "Interaction Location", y = "Swimmers (50m)")
+
+# Combined plot
+swimcounts_combined <- grid.arrange(swim_10, swim_50, 
+                                ncol = 2, 
+                                top = "Number of Swimmers within 10m and 50m of Dolphins")
+print(vesselcounts_combined)
+
+```
+
+### Swimmer Behaviors
+
+```{r swim behav percent}
+# Create a frequency table
+swim_counts <- table(SM_data_swimNAs$PDSBehav)
+
+# Convert to percentages
+swim_percentages <- prop.table(swim_counts) * 100
+print(swim_percentages)
+
+```
+
+```{r swim HI behavior}
+# Human Interaction swimming behavior
+SM_data_swim_HI <- SM_data_swimNAs %>% filter(PDGBehav == "HI")
+
+# Percentage of HI behaviors in a frequency table
+swimHI_counts <- table(SM_data_swim_HI$PDSBehav)
+
+# Convert to percentages
+swimHI_percentages <- prop.table(swimHI_counts) * 100
+print(swimHI_percentages)
+
+# Aggressive swimming behavior
+SM_data_swim_AGR <- SM_data_swimNAs %>% filter(HIBehav == "AGR")
+
+# Percentage of Aggressive behaviors in a frequency table
+swimAGR_counts <- table(SM_data_swim_AGR$PDSBehav)
+
+# Convert to percentages
+swimAGR_percentages <- prop.table(swimAGR_counts) * 100
+print(swimAGR_percentages)
+
+```
+
+```{r swimmer behav plots}
+# Plot of Swimmer Behaviors
+ggplot(SM_data_swimNAs, aes(x = PDSBehav)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Interaction Swimmer Behaviors", 
+       x = "Swimmer Behaviors", y = "Count")
+
+# Plot of Swimmer Behaviors over time
+ggplot(SM_data_swimNAs, aes(x = True_Date, y = PDSBehav)) + 
+  geom_point() +
+  labs(title = "Count of Interaction Swimmer Behaviors over Time",
+       x = "Interaction Date", y = "Swimmer Behavior")
+
+# Heat map of swimmer Behav over time
+swim_heatmap <- ggplot(SM_data_swimNAs, aes(x = True_Date, y = PDSBehav)) +
+  geom_tile(aes(fill = ..count..), stat = "bin2d") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(x = "Interaction Date", 
+       y = "Predominate Swimmer Behaviors", fill = "Count") +
+  theme_minimal()
+
+swim_heatmap <- annotate_figure(swim_heatmap, 
+        top = text_grob("Frequency of Predominate Swimmer Behaviors over Time",
+                                face = "bold", size = 14))
+print(swim_heatmap)
+
+
+# Plot of Swimmer Behaviors by Location
+swimmer_location <- ggplot(SM_data_swimNAs, aes(x = General_Location, 
+                                      fill = PDSBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Location", y = "Count", fill = "Predominant Swimmer Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = interpolated_colors) 
+
+annotate_figure(swimmer_location, 
+     top = text_grob("Comparison of Location and Predominant Swimmer Behavior",
+                                face = "bold", size = 14))
+
+```
+
+### Swimmer Statistics
+
+```{r swim stats}
+# summary stats of swimmers_10 by location
+swim_summary_10 <- SM_data_swimNAs %>%
+  group_by(General_Location) %>%
+  summarise(
+    Total_Records = n(),  # Count of interactions per location
+    Mean_Swim = mean(Swimmers_10, na.rm = TRUE),
+    Median_Swim = median(Swimmers_10, na.rm = TRUE),
+    Min_Swim = min(Swimmers_10, na.rm = TRUE),
+    Max_Swim = max(Swimmers_10, na.rm = TRUE)
+  )
+
+print(swim_summary_10)
+
+# summary stats of swimmers_50 by location
+swim_summary_50 <- SM_data_swimNAs %>%
+  group_by(General_Location) %>%
+  summarise(
+    Total_Records = n(),  # Count of interactions per location
+    Mean_Swim = mean(Swimmers_50, na.rm = TRUE),
+    Median_Swim = median(Swimmers_50, na.rm = TRUE),
+    Min_Swim = min(Swimmers_50, na.rm = TRUE),
+    Max_Swim = max(Swimmers_50, na.rm = TRUE)
+  )
+
+print(swim_summary_50)
+
+```
+
+
+## Behavior Comparisons
+
+### Swimmer - Dolphin Comparison
+
+```{r swim dolphin compare}
+# Define category names
+categories <- c("CBV", "CHA", "IWR", "MC", "NP")
+
+# Assign colors dynamically
+category_colors <- setNames(wes_palette("Darjeeling1"), categories)
+
+# Plot of Swimmer Behaviors by Predominate Group Behaviors
+swim_PDGB_plot <- ggplot(SM_data_swimNAs, aes(x = PDGBehav, fill = PDSBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Dolphin Group Behaviors", y = "Count", 
+       fill = "Swimmer Behaviors :") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("HI" = "Human Interaction", 
+                              "ML" = "Milling", 
+                              "RML" = "Rubbing on Mooring", 
+                              "SOC" = "Social", 
+                              "TRV" = "Traveling")) +
+  scale_fill_manual(values = wes_palette("Darjeeling1"), 
+                    labels = c("CHA" = "Chasing", 
+                               "NP" = "Neutral Position",
+                               "OTH" = "Other",
+                               "TCH" = "Touching"))
+
+# Remove NAs
+SM_data_HI_swimNAs <- SM_data_HI[!is.na(SM_data_HI$PDSBehav), ]
+
+# Plot of Swimmer Behaviors by HI Behaviors
+swim_HI_plot <- ggplot(SM_data_HI_swimNAs, aes(x = HIBehav, fill = PDSBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Dolphin HI Behaviors", y = "Count", fill = "Swimmer Behaviors :") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("AGR" = "Aggressive", 
+                              "BEG" = "Begging", 
+                              "HU" = "Head Up", 
+                              "RC" = "Remain Close", 
+                              "RT" = "Repeat Travel")) +
+  scale_fill_manual(values = wes_palette("Darjeeling1"), 
+                    labels = c("CHA" = "Chasing", 
+                               "NP" = "Neutral Position",
+                               "OTH" = "Other",
+                               "TCH" = "Touching"))
+
+# Combined swimmer plot
+swim_combined_plot <- ggarrange(swim_PDGB_plot, swim_HI_plot, 
+                                ncol = 2, 
+                                #labels = c("A", "B"), 
+                                common.legend = TRUE, 
+                                legend = "bottom")    
+
+# Add title separately
+annotate_figure(swim_combined_plot, 
+                top = text_grob("Comparison of Swimmer Behaviors and Dolphin Behaviors",
+                                face = "bold", size = 14))
+
+ggsave("~/Duke/MP/Data_Analysis/swimmerplot.png", swim_combined_plot, dpi = 300)
+
+```
+
+### Vessel - Dolphin Comparison
+
+```{r vessel dolphin compare, echo=FALSE, fig.width=6, fig.height=4}
+# Plot of Vessel Behaviors by Predominate Group Behaviors
+vessel_PDGB_plot <- ggplot(SM_data_vesselNAs, 
+                           aes(x = PDGBehav, fill = PDVBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Dolphin Group Behaviors", y = "Count", fill = "Vessel Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("HI" = "Human Interaction", 
+                              "ML" = "Milling", 
+                              "RML" = "Rubbing on Mooring", 
+                              "SOC" = "Social", 
+                              "TRV" = "Traveling")) +
+  scale_fill_manual(values = category_colors, 
+                    labels = c("CBV" = "Corral by Vessel", 
+                               "CHA" = "Chasing",
+                               "IWR" = "Instigate Wake Riding",
+                               "MC" = "Maintain Course",
+                               "NP" = "Neutral Position"))
+
+# Remove NAs
+SM_data_HI_vesselNAs <- SM_data_HI[!is.na(SM_data_HI$PDVBehav), ]
+
+# Plot of Vessel Behaviors by HI Behaviors
+vessel_HI_plot <- ggplot(SM_data_HI_vesselNAs, 
+                         aes(x = HIBehav, fill = PDVBehav)) + 
+  geom_bar(position = "stack") +
+  labs(x = "Dolphin HI Behaviors", y = "Count", fill = "Vessel Behavior") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_x_discrete(labels = c("AGR" = "Aggressive", 
+                                "BEG" = "Begging", 
+                                "HU" = "Head Up", 
+                                "RC" = "Remain Close", 
+                                "FV" = "Follow Vessel", 
+                                "RT" = "Repeat Travel")) +
+  scale_fill_manual(values = category_colors, 
+                    labels = c("IWR" = "Instigate Wake Riding",
+                               "MC" = "Maintain Course",
+                               "NP" = "Neutral Position"))
+
+# Combined vessel plot
+vessel_combined_plot <- ggarrange(vessel_PDGB_plot, vessel_HI_plot, 
+                                ncol = 2,
+                                widths = c(5, 5),
+                                #labels = c("A", "B"), 
+                                common.legend = FALSE, 
+                                legend = "right")    
+
+# Add title separately
+vessel_combined_plot <- annotate_figure(vessel_combined_plot, 
+         top = text_grob("Comparison of Vessel Behaviors and Dolphin Behaviors",
+                                face = "bold", size = 14))
+print(vessel_combined_plot)
+
+# Save plot
+ggsave("~/Duke/MP/Data_Analysis/vesselplot.png", 
+       vessel_combined_plot, width = 12, height = 6, dpi = 300)
+
+```
+
+### Comparison Counts and Percentages
+
+```{r swim dolphin stats}
+# Counts of Swim Behav by Dolphin Behav
+SwimBehav_counts <- table(SM_data_swimNAs$PDGBehav, SM_data_swimNAs$PDSBehav)
+print(SwimBehav_counts)
+
+# Percentages of Swim Behav by Dolphin Behav
+SwimBehav_percent <- prop.table(SwimBehav_counts) * 100
+print(SwimBehav_percent)
+
+# Counts of Swimmer Behav by HI Behav
+SwimHI_counts <- table(SM_data_swimNAs$HIBehav, SM_data_swimNAs$PDSBehav)
+print(SwimHI_counts)
+
+# Percentages of Swimmer Behav by HI Behav
+SwimHI_percent <- prop.table(SwimHI_counts) * 100
+print(SwimHI_percent)
+
+```
+
+```{r vessel dolphin stats}
+# Counts of Vessel Behav by Dolphin Behav
+VesselBehav_counts <- table(SM_data_vesselNAs$PDGBehav, 
+                            SM_data_vesselNAs$PDVBehav)
+print(VesselBehav_counts)
+
+# Percentages of Vessel Behav by Dolphin Behav
+VesselBehav_percent <- prop.table(VesselBehav_counts) * 100
+print(VesselBehav_percent)
+
+# Counts of Vessel Behav by HI Behav
+VesselHI_counts <- table(SM_data_vesselNAs$HIBehav, SM_data_vesselNAs$PDVBehav)
+print(VesselHI_counts)
+
+# Percentages of Vessel Behav by HI Behav
+VesselHI_percent <- prop.table(VesselHI_counts) * 100
+print(VesselHI_percent)
+
+```
