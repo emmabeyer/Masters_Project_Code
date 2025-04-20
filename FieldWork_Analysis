@@ -1,0 +1,368 @@
+---
+title: "FieldWork_Analysis"
+author: "Emma Beyer"
+date: "2025-02-08"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cleaning Field Observation Data for Master's Project
+
+## Set Up
+
+```{r install, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+
+getwd()
+
+Boat_Log <- read.csv("~/Duke/MP/Field_Research/Analysis/Boat_Log.csv",
+                     stringsAsFactors = T)
+
+Land_Survey <- read.csv("~/Duke/MP/Field_Research/Analysis/Land_Survey.csv",
+                        stringsAsFactors = T)
+
+```
+
+## Updating data types
+
+```{r boatlog data types}
+# Checking data types
+str(Boat_Log)
+
+# Changing to Date to date format
+Boat_Log$Date <- as.Date(Boat_Log$Date, format = "%m/%d/%Y")
+
+# Changing BSS and DSS to numeric
+Boat_Log <- Boat_Log %>%
+  mutate(
+    across(c(7,8), ~as.numeric(as.character(.)))
+  )
+
+# Changing time to time format
+Boat_Log$Time <- hms::parse_hm(Boat_Log$Time)
+
+# Check the updated data frame
+str(Boat_Log)
+
+```
+
+```{r landsurvey data types}
+#Checking data types
+str(Land_Survey)
+
+# Changing to Date to date format
+Boat_Log$Date <- as.Date(Boat_Log$Date, format = "%Y/%m/%d")
+
+# Changing BSS and DSS to numeric
+Land_Survey <- Land_Survey %>%
+  mutate(
+    across(c(7:11), ~as.numeric(as.character(.)))
+  )
+
+# Removing extra time column
+Land_Survey <- Land_Survey %>% select(-Total_Time)
+
+# Survey Times
+# Changing time to time format
+Land_Survey$Survey_Start_Time <- 
+  hms::as_hms(as.character(Land_Survey$Survey_Start_Time))
+Land_Survey$Survey_End_Time <- 
+  hms::as_hms(as.character(Land_Survey$Survey_End_Time))
+
+# Find total time for each survey
+Land_Survey$Survey_TotalMinutes <- 
+  as.numeric(Land_Survey$Survey_End_Time - Land_Survey$Survey_Start_Time)
+
+# Convert into minutes
+Land_Survey$Survey_TotalMinutes <- Land_Survey$Survey_TotalMinutes / 60
+
+# Check the updated data frame
+str(Land_Survey)
+
+```
+
+## Basic Statistics
+
+```{r basic stats}
+# Summary of boat log variables
+summary(Boat_Log)
+
+# Note vessel survey 1 (5h,36mins), survey 2 (6h,15mins), survey 3 (5h,31mins)
+# Total effort time - 17h,1min
+
+# Summary of walking survey variables
+summary(Land_Survey)
+
+# Standard Error of counts
+sd(Land_Survey$Vessels) / sqrt(length(Land_Survey$Vessels))
+sd(Land_Survey$JetSkis) / sqrt(length(Land_Survey$JetSkis))
+sd(Land_Survey$Swimmers) / sqrt(length(Land_Survey$Swimmers))
+
+
+```
+
+## Land Survey Statistics
+
+```{r survey time}
+# Icacos surveys
+Icacos_Survey <- subset(Land_Survey, Location == "Icacos")
+
+# Palominos surveys
+Palominos_Survey <- subset(Land_Survey, Location == "Palominos")
+
+# Scanning time
+total <- 198+322+307+247+263+256
+total - 550
+
+# Plot of Icacos survey
+ggplot(Icacos_Survey, aes(x = Survey_TotalMinutes)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Icacos_Survey$Survey_TotalMinutes, 
+                                        na.rm = TRUE), 
+                            sd = sd(Icacos_Survey$Survey_TotalMinutes, 
+                                    na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(title = "Distribution of Survey Length on Icacos", 
+       x = "Length of Survey (mins)", 
+       y = "Density") +
+  theme_minimal()
+
+# Normality test
+shapiro.test(Icacos_Survey$Survey_TotalMinutes)
+#If p-value > 0.05, the data is likely normal.
+#If p-value < 0.05, the data deviates from normality.
+
+# Plot of Palominos survey
+ggplot(Palominos_Survey, aes(x = Survey_TotalMinutes)) +
+  geom_histogram(aes(y = ..density..), 
+                 bins = 30, color = "black", fill = "deepskyblue", 
+                 alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Palominos_Survey$Survey_TotalMinutes, 
+                                        na.rm = TRUE), 
+                            sd = sd(Palominos_Survey$Survey_TotalMinutes, 
+                                    na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(title = "Distribution of Survey Length on Palominos", 
+       x = "Length of Survey (mins)", 
+       y = "Density") +
+  theme_minimal()  
+
+# Normality test
+shapiro.test(Palominos_Survey$Survey_TotalMinutes)
+#If p-value > 0.05, the data is likely normal.
+#If p-value < 0.05, the data deviates from normality.
+
+```
+
+## Vessel Survey Statistics
+
+```{r vessels}
+# Plot of vessels
+ggplot(Land_Survey, aes(x = Vessels)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Land_Survey$Vessels, na.rm = TRUE), 
+                            sd = sd(Land_Survey$Vessels, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(title = "Distribution of Vessels within 100 m of the Shoreline", 
+       x = "Number of Vessels", 
+       y = "Density") +
+  theme_minimal()  
+
+# Normality test
+shapiro.test(Land_Survey$Vessels)
+#If p-value > 0.05, the data is likely normal.
+#If p-value < 0.05, the data deviates from normality.
+
+# Plot of Icacos vessels
+Icacos_Vessels <- ggplot(Icacos_Survey, aes(x = Vessels)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Icacos_Survey$Vessels, na.rm = TRUE), 
+                            sd = sd(Icacos_Survey$Vessels, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Vessels", 
+       y = "Density") +
+  theme_minimal()  
+print(Icacos_Vessels)
+
+# Normality test
+shapiro.test(Icacos_Survey$Vessels)
+
+# Plot of Palominos vessels
+Palominos_Vessels <- ggplot(Palominos_Survey, aes(x = Vessels)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Palominos_Survey$Vessels, na.rm = TRUE), 
+                            sd = sd(Palominos_Survey$Vessels, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Vessels", 
+       y = "Density") +
+  theme_minimal() 
+print(Palominos_Vessels)
+
+# Normality test
+shapiro.test(Palominos_Survey$Vessels)
+
+
+```
+
+## Jet Ski Statistics
+
+```{r jetskis}
+# Plot of jet ski
+ggplot(Land_Survey, aes(x = JetSkis)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Land_Survey$JetSkis, na.rm = TRUE), 
+                            sd = sd(Land_Survey$JetSkis, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(title = "Distribution of Jetskis within 100 m of the Shoreline", 
+       x = "Number of Jetskis", 
+       y = "Density") +
+  theme_minimal()  
+
+# Normality test
+shapiro.test(Land_Survey$JetSkis)
+#If p-value > 0.05, the data is likely normal.
+#If p-value < 0.05, the data deviates from normality.
+
+# Plot of Icacos jet ski
+Icacos_JS <- ggplot(Icacos_Survey, aes(x = JetSkis)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Icacos_Survey$JetSkis, na.rm = TRUE), 
+                            sd = sd(Icacos_Survey$JetSkis, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Jet Skis", 
+       y = "Density") +
+  theme_minimal()  
+print(Icacos_JS)
+
+# Normality test
+shapiro.test(Icacos_Survey$JetSkis)
+
+# Plot of Palominos jetski
+Palominos_JS <- ggplot(Palominos_Survey, aes(x = JetSkis)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Palominos_Survey$JetSkis, na.rm = TRUE), 
+                            sd = sd(Palominos_Survey$JetSkis, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Jet Skis", 
+       y = "Density") +
+  theme_minimal()  
+print(Palominos_JS)
+
+# Normality test
+shapiro.test(Palominos_Survey$JetSkis)
+
+
+```
+
+## Swimmer Statistics
+
+```{r swimmers}
+# Plot of swimmers
+ggplot(Land_Survey, aes(x = Swimmers)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Land_Survey$Swimmers, na.rm = TRUE), 
+                            sd = sd(Land_Survey$Swimmers, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(title = "Distribution of Swimmers within 100 m of the Shoreline", 
+       x = "Number of Swimmers", 
+       y = "Density") +
+  theme_minimal()  
+
+# Normality test
+shapiro.test(Land_Survey$Swimmers)
+#If p-value > 0.05, the data is likely normal.
+#If p-value < 0.05, the data deviates from normality.
+
+# Plot of Icacos Swimmers
+Icacos_Swimmers <- ggplot(Icacos_Survey, aes(x = Swimmers)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Icacos_Survey$Swimmers, na.rm = TRUE), 
+                            sd = sd(Icacos_Survey$Swimmers, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Swimmers", 
+       y = "Density") +
+  theme_minimal()  
+print(Icacos_Swimmers)
+
+# Normality test
+shapiro.test(Icacos_Survey$Swimmers)
+
+# Plot of Palominos Swimmers
+Palominos_Swimmers <- ggplot(Palominos_Survey, aes(x = Swimmers)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", 
+                 fill = "deepskyblue", alpha = 0.5) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Palominos_Survey$Swimmers, na.rm = TRUE), 
+                            sd = sd(Palominos_Survey$Swimmers, na.rm = TRUE)), 
+                color = "red", linewidth = 1) +  
+  labs(x = "Number of Swimmmers", 
+       y = "Density") +
+  theme_minimal() 
+print(Palominos_Swimmers)
+
+# Normality test
+shapiro.test(Palominos_Survey$Swimmers)
+
+
+```
+
+## Standard Error of all Counts
+
+```{r island stats}
+summary(Icacos_Survey)
+
+summary(Palominos_Survey)
+
+sd(Icacos_Survey$Vessels) / sqrt(length(Icacos_Survey$Vessels))
+sd(Icacos_Survey$JetSkis) / sqrt(length(Icacos_Survey$JetSkis))
+sd(Icacos_Survey$Swimmers) / sqrt(length(Icacos_Survey$Swimmers))
+
+sd(Palominos_Survey$Vessels) / sqrt(length(Palominos_Survey$Vessels))
+sd(Palominos_Survey$JetSkis) / sqrt(length(Palominos_Survey$JetSkis))
+sd(Palominos_Survey$Swimmers) / sqrt(length(Palominos_Survey$Swimmers))
+
+
+```
+
+## Combined Count Plots for Icacos and Palominos
+
+```{r combined plots}
+Icacos_combined <- grid.arrange(Icacos_Vessels, Icacos_JS, Icacos_Swimmers, 
+                                ncol = 2, 
+                top = "Distribution of Counts within 100 m of Icacos Shoreline")
+print(Icacos_combined)
+
+Palominos_combined <- grid.arrange(Palominos_Vessels, Palominos_JS, Palominos_Swimmers, 
+                                   ncol = 2,
+            top = "Distribution of Counts within 100 m of Palominos Shoreline")
+print(Palominos_combined)
+  
+```
+
